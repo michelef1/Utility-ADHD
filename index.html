@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Utility ADHD</title>
+<meta name="description" content="Utility ADHD — attività, focus timer, abitudini, obiettivi e umore in un unico spazio.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14141f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Utility ADHD">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --bg:#14141f;
+  --bg-elev:#1c1c2b;
+  --bg-elev-2:#252538;
+  --bg-elev-3:#2d2d44;
+  --border:#31314a;
+  --border-soft:#26263a;
+  --text:#edecf7;
+  --text-dim:#a6a4c0;
+  --text-faint:#6f6d8c;
+  --accent:#8b7fe8;
+  --accent-soft:#8b7fe830;
+  --accent-2:#5fd9a6;
+  --accent-2-soft:#5fd9a630;
+  --energy:#ff9166;
+  --energy-soft:#ff916630;
+  --warm:#ffd166;
+  --warm-soft:#ffd16630;
+  --danger:#f27878;
+  --radius-s:10px;
+  --radius-m:16px;
+  --radius-l:24px;
+  --shadow-1:0 4px 20px rgba(0,0,0,.25);
+  --shadow-2:0 12px 40px rgba(0,0,0,.35);
+  --font-display:'Outfit',sans-serif;
+  --font-body:'Inter',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --dur:.25s;
+  color-scheme: dark;
+}
+html[data-theme="light"]{
+  --bg:#f5f4fb;
+  --bg-elev:#ffffff;
+  --bg-elev-2:#f0eefa;
+  --bg-elev-3:#e8e5f7;
+  --border:#ddd9f0;
+  --border-soft:#e8e5f7;
+  --text:#211f36;
+  --text-dim:#615f7d;
+  --text-faint:#9997b3;
+  --accent:#6f5fe0;
+  --accent-soft:#6f5fe022;
+  color-scheme: light;
+}
+html[data-motion="reduced"] *{ animation-duration:.001s !important; transition-duration:.001s !important; }
+html[data-font="dislexia"] body{ font-family:'Atkinson Hyperlegible', var(--font-body); }
+html[data-size="grande"] body{ font-size:18px; }
+html[data-size="xl"] body{ font-size:20px; }
+
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--font-body); font-size:16px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  transition:background var(--dur), color var(--dur);
+  overscroll-behavior-y:none;
+}
+h1,h2,h3,.display{font-family:var(--font-display); font-weight:700; margin:0;}
+.mono{font-family:var(--font-mono);}
+button{font-family:inherit; cursor:pointer;}
+::selection{background:var(--accent-soft);}
+:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-radius:6px;}
+a{color:inherit;}
+
+/* ============ APP SHELL ============ */
+#app{max-width:520px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; position:relative; background:var(--bg);}
+
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 20px 8px; position:sticky; top:0; z-index:40;
+  background:linear-gradient(var(--bg) 75%, transparent);
+}
+.topbar .greet{display:flex; flex-direction:column; gap:2px;}
+.topbar .greet .hello{font-family:var(--font-display); font-weight:600; font-size:1.25rem;}
+.topbar .greet .date{font-size:.8rem; color:var(--text-dim); text-transform:capitalize;}
+.topbar .actions{display:flex; align-items:center; gap:8px;}
+.icon-btn{
+  width:40px; height:40px; border-radius:50%; border:1px solid var(--border);
+  background:var(--bg-elev); color:var(--text); display:flex; align-items:center; justify-content:center;
+  transition:transform var(--dur), background var(--dur), border-color var(--dur);
+}
+.icon-btn:hover{background:var(--bg-elev-2); transform:translateY(-1px);}
+.icon-btn:active{transform:scale(.94);}
+.icon-btn svg{width:19px; height:19px;}
+
+.mood-dot-row{display:flex; gap:4px;}
+.mood-dot{width:7px; height:7px; border-radius:50%; background:var(--border);}
+.mood-dot.filled{background:var(--accent-2);}
+
+main{flex:1; padding:4px 20px 110px; position:relative;}
+.view{display:none; animation:viewIn .32s cubic-bezier(.2,.8,.2,1);}
+.view.active{display:block;}
+@keyframes viewIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+.section-label{
+  font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint);
+  font-weight:700; margin:26px 0 12px; display:flex; align-items:center; gap:8px;
+}
+.section-label:first-child{margin-top:6px;}
+.section-label .rule{flex:1; height:1px; background:var(--border-soft);}
+
+/* ============ BOTTOM NAV ============ */
+.bottomnav{
+  position:fixed; left:50%; transform:translateX(-50%); bottom:16px; z-index:50;
+  width:calc(100% - 32px); max-width:488px;
+  background:var(--bg-elev); border:1px solid var(--border); border-radius:22px;
+  display:flex; padding:6px; box-shadow:var(--shadow-2); backdrop-filter:blur(20px);
+}
+.navbtn{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+  padding:9px 4px 8px; border:none; background:transparent; border-radius:16px; color:var(--text-faint);
+  transition:color var(--dur), background var(--dur);
+  position:relative;
+}
+.navbtn svg{width:21px; height:21px;}
+.navbtn span{font-size:.62rem; font-weight:600;}
+.navbtn.active{color:var(--accent); background:var(--accent-soft);}
+.navbtn .live-badge{
+  position:absolute; top:4px; right:22%; width:7px; height:7px; border-radius:50%; background:var(--energy);
+  animation:pulse 1.6s infinite;
+}
+@keyframes pulse{0%,100%{transform:scale(1); opacity:1;} 50%{transform:scale(1.4); opacity:.5;}}
+
+/* ============ CARDS ============ */
+.card{
+  background:var(--bg-elev); border:1px solid var(--border); border-radius:var(--radius-m);
+  padding:18px; margin-bottom:12px;
+}
+
+/* ---- HERO "ADESSO" ---- */
+.hero{
+  border-radius:var(--radius-l); padding:22px; position:relative; overflow:hidden;
+  background:linear-gradient(160deg, var(--bg-elev-2), var(--bg-elev));
+  border:1px solid var(--border);
+}
+.hero::before{
+  content:''; position:absolute; width:220px; height:220px; border-radius:50%;
+  background:radial-gradient(circle, var(--accent-soft), transparent 70%);
+  top:-90px; right:-70px; pointer-events:none;
+}
+.hero .eyebrow{font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); font-weight:700;}
+.hero h2{font-size:1.5rem; margin:8px 0 4px; line-height:1.25; position:relative;}
+.hero .meta-row{display:flex; gap:10px; margin:10px 0 16px; flex-wrap:wrap;}
+.chip{
+  display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border-radius:100px;
+  font-size:.76rem; font-weight:600; background:var(--bg-elev-3); color:var(--text-dim); border:1px solid var(--border-soft);
+}
+.chip.priority-alta{background:var(--energy-soft); color:var(--energy);}
+.chip.priority-media{background:var(--warm-soft); color:var(--warm);}
+.chip.priority-bassa{background:var(--accent-2-soft); color:var(--accent-2);}
+.hero-actions{display:flex; gap:10px;}
+.empty-hero{text-align:center; padding:30px 10px;}
+.empty-hero .big-emoji{font-size:2.6rem; display:block; margin-bottom:10px;}
+.empty-hero p{color:var(--text-dim); margin:4px 0 16px; font-size:.9rem;}
+
+/* ============ BUTTONS ============ */
+.btn{
+  border:none; border-radius:100px; padding:12px 20px; font-weight:600; font-size:.9rem;
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  transition:transform var(--dur), filter var(--dur), background var(--dur);
+}
+.btn:active{transform:scale(.96);}
+.btn-primary{background:var(--accent); color:#fff;}
+.btn-primary:hover{filter:brightness(1.08);}
+.btn-ghost{background:var(--bg-elev-3); color:var(--text);}
+.btn-ghost:hover{background:var(--bg-elev-2);}
+.btn-sm{padding:8px 14px; font-size:.8rem;}
+.btn-block{width:100%;}
+.btn-icon-only{width:44px; height:44px; padding:0; border-radius:50%;}
+.btn svg{width:16px; height:16px;}
+.fab{
+  position:fixed; right:calc(50% - 260px + 20px); bottom:96px; z-index:45;
+  width:56px; height:56px; border-radius:50%; background:var(--accent); color:#fff; border:none;
+  box-shadow:0 10px 30px rgba(139,127,232,.45); display:flex; align-items:center; justify-content:center;
+  transition:transform var(--dur);
+}
+.fab:active{transform:scale(.9);}
+.fab svg{width:24px; height:24px;}
+@media (max-width:552px){ .fab{ right:24px; } }
+
+/* ============ TIMELINE ============ */
+.timeline-scroll{display:flex; gap:10px; overflow-x:auto; padding:2px 2px 12px; scrollbar-width:none;}
+.timeline-scroll::-webkit-scrollbar{display:none;}
+.tl-block{
+  min-width:132px; background:var(--bg-elev); border:1px solid var(--border); border-radius:var(--radius-m);
+  padding:13px; flex-shrink:0; transition:border-color var(--dur), transform var(--dur);
+}
+.tl-block.done{opacity:.5;}
+.tl-block.done .tl-title{text-decoration:line-through;}
+.tl-block.current{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent);}
+.tl-time{font-family:var(--font-mono); font-size:.72rem; color:var(--accent); font-weight:500;}
+.tl-title{font-weight:600; font-size:.85rem; margin-top:6px; line-height:1.3;}
+.tl-check{
+  margin-top:10px; width:24px; height:24px; border-radius:50%; border:2px solid var(--border);
+  display:flex; align-items:center; justify-content:center; background:transparent;
+}
+.tl-check.on{background:var(--accent-2); border-color:var(--accent-2);}
+.tl-check svg{width:13px; height:13px; color:#0a0a12; opacity:0;}
+.tl-check.on svg{opacity:1;}
+
+/* ============ TASK LIST ============ */
+.task-row{
+  display:flex; align-items:flex-start; gap:12px; padding:13px 4px; border-bottom:1px solid var(--border-soft);
+}
+.task-row:last-child{border-bottom:none;}
+.task-check{
+  width:23px; height:23px; min-width:23px; border-radius:50%; border:2px solid var(--border);
+  display:flex; align-items:center; justify-content:center; margin-top:2px; background:transparent;
+  transition:background var(--dur), border-color var(--dur), transform var(--dur);
+}
+.task-check.on{background:var(--accent-2); border-color:var(--accent-2); transform:scale(1.05);}
+.task-check svg{width:12px; height:12px; color:#0a0a12; opacity:0;}
+.task-check.on svg{opacity:1;}
+.task-body{flex:1; min-width:0;}
+.task-title{font-weight:600; font-size:.94rem;}
+.task-row.done .task-title{text-decoration:line-through; color:var(--text-faint);}
+.task-sub{display:flex; gap:8px; margin-top:4px; flex-wrap:wrap; align-items:center;}
+.task-sub .time{font-size:.75rem; color:var(--text-dim); font-family:var(--font-mono);}
+.subtask-progress{font-size:.72rem; color:var(--text-faint);}
+.task-actions{display:flex; gap:4px;}
+.mini-btn{
+  width:30px; height:30px; border-radius:9px; border:1px solid var(--border); background:transparent;
+  color:var(--text-dim); display:flex; align-items:center; justify-content:center;
+}
+.mini-btn:hover{background:var(--bg-elev-2); color:var(--text);}
+.mini-btn svg{width:14px; height:14px;}
+.subtask-list{margin:8px 0 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px;}
+.subtask-list li{display:flex; align-items:center; gap:9px; font-size:.85rem;}
+.subtask-list .sc{width:17px; height:17px; min-width:17px; border-radius:6px; border:2px solid var(--border); display:flex; align-items:center; justify-content:center;}
+.subtask-list .sc.on{background:var(--accent-2); border-color:var(--accent-2);}
+.subtask-list .sc svg{width:10px; height:10px; opacity:0; color:#0a0a12;}
+.subtask-list .sc.on svg{opacity:1;}
+.subtask-list li.on span{text-decoration:line-through; color:var(--text-faint);}
+
+.empty-state{text-align:center; padding:40px 10px; color:var(--text-dim);}
+.empty-state .big-emoji{font-size:2.2rem; display:block; margin-bottom:8px;}
+.empty-state p{font-size:.88rem; margin:0;}
+
+/* ============ FOCUS TIMER VIEW ============ */
+.focus-wrap{display:flex; flex-direction:column; align-items:center; padding:14px 0 8px;}
+.ring-wrap{position:relative; width:270px; height:270px; margin:10px 0 20px;}
+.ring-wrap svg{width:100%; height:100%; transform:rotate(-90deg);}
+.ring-bg{fill:none; stroke:var(--border-soft); stroke-width:12;}
+.ring-fg{fill:none; stroke:var(--accent); stroke-width:12; stroke-linecap:round; transition:stroke-dashoffset 1s linear;}
+.ring-center{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+.ring-time{font-family:var(--font-mono); font-size:2.6rem; font-weight:700; letter-spacing:-1px;}
+.ring-label{font-size:.78rem; color:var(--text-dim); margin-top:4px; text-align:center; max-width:170px;}
+.breathing .ring-wrap{animation:breathe 8s ease-in-out infinite;}
+@keyframes breathe{0%,100%{transform:scale(1);} 50%{transform:scale(1.045);}}
+
+.preset-row{display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; justify-content:center;}
+.preset-chip{
+  padding:8px 16px; border-radius:100px; border:1px solid var(--border); background:var(--bg-elev);
+  color:var(--text-dim); font-size:.82rem; font-weight:600;
+}
+.preset-chip.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+.focus-controls{display:flex; gap:12px; align-items:center;}
+.focus-task-select{
+  width:100%; margin-top:6px; padding:12px 14px; border-radius:var(--radius-s); border:1px solid var(--border);
+  background:var(--bg-elev); color:var(--text); font-family:inherit; font-size:.88rem;
+}
+.session-stats{display:flex; gap:10px; width:100%; margin-top:22px;}
+.stat-box{flex:1; background:var(--bg-elev); border:1px solid var(--border); border-radius:var(--radius-m); padding:14px; text-align:center;}
+.stat-box .num{font-family:var(--font-mono); font-size:1.5rem; font-weight:700; color:var(--accent);}
+.stat-box .lbl{font-size:.7rem; color:var(--text-dim); margin-top:3px;}
+
+/* ============ HABITS ============ */
+.habit-card{display:flex; align-items:center; gap:14px; padding:15px;}
+.habit-emoji{width:46px; height:46px; border-radius:14px; background:var(--bg-elev-2); display:flex; align-items:center; justify-content:center; font-size:1.4rem; flex-shrink:0;}
+.habit-info{flex:1; min-width:0;}
+.habit-name{font-weight:600; font-size:.95rem;}
+.habit-streak{font-size:.76rem; color:var(--accent); font-weight:600; margin-top:2px;}
+.habit-grid{display:flex; gap:3px; margin-top:8px;}
+.hg-cell{width:11px; height:11px; border-radius:3px; background:var(--border-soft);}
+.hg-cell.on{background:var(--accent-2);}
+.habit-toggle{
+  width:46px; height:46px; border-radius:50%; border:2px solid var(--border); background:transparent; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; transition:all var(--dur);
+}
+.habit-toggle.on{background:var(--accent-2); border-color:var(--accent-2); transform:scale(1.05);}
+.habit-toggle svg{width:20px; height:20px; opacity:0; color:#0a0a12;}
+.habit-toggle.on svg{opacity:1;}
+
+/* ============ GOALS ============ */
+.goal-card{padding:18px;}
+.goal-top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+.goal-title{font-weight:700; font-size:1.02rem; font-family:var(--font-display);}
+.goal-bar-track{height:8px; border-radius:8px; background:var(--bg-elev-2); margin:14px 0 8px; overflow:hidden;}
+.goal-bar-fill{height:100%; border-radius:8px; background:linear-gradient(90deg, var(--accent), var(--accent-2));}
+.goal-pct{font-size:.76rem; color:var(--text-dim); font-family:var(--font-mono);}
+.milestone-list{margin-top:12px; display:flex; flex-direction:column; gap:8px;}
+.milestone{display:flex; align-items:center; gap:9px; font-size:.86rem;}
+.milestone .mc{width:18px; height:18px; min-width:18px; border-radius:6px; border:2px solid var(--border); display:flex; align-items:center; justify-content:center;}
+.milestone .mc.on{background:var(--accent-2); border-color:var(--accent-2);}
+.milestone .mc svg{width:11px; height:11px; opacity:0; color:#0a0a12;}
+.milestone .mc.on svg{opacity:1;}
+.milestone.on span{color:var(--text-faint); text-decoration:line-through;}
+
+/* ============ MOOD ============ */
+.mood-picker{display:flex; justify-content:space-between; gap:8px; margin:16px 0;}
+.mood-opt{
+  flex:1; aspect-ratio:1; border-radius:var(--radius-m); border:2px solid var(--border); background:var(--bg-elev);
+  display:flex; align-items:center; justify-content:center; font-size:1.5rem; transition:all var(--dur);
+}
+.mood-opt.sel{border-color:var(--accent); background:var(--accent-soft); transform:scale(1.08);}
+.energy-slider-wrap{margin:18px 0 6px;}
+.energy-slider-wrap label{font-size:.8rem; color:var(--text-dim); display:block; margin-bottom:10px;}
+input[type=range]{
+  -webkit-appearance:none; width:100%; height:6px; border-radius:6px;
+  background:linear-gradient(90deg, var(--accent-2), var(--warm), var(--energy));
+}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:#fff; border:3px solid var(--accent); cursor:pointer;}
+input[type=range]::-moz-range-thumb{width:22px; height:22px; border-radius:50%; background:#fff; border:3px solid var(--accent); cursor:pointer;}
+textarea, input[type=text], input[type=number]{
+  width:100%; padding:12px 14px; border-radius:var(--radius-s); border:1px solid var(--border);
+  background:var(--bg-elev); color:var(--text); font-family:inherit; font-size:.9rem; resize:vertical;
+}
+textarea:focus, input:focus{border-color:var(--accent);}
+.mood-history{margin-top:22px;}
+.mood-chart{width:100%; height:120px;}
+.mood-log-row{display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border-soft); font-size:.85rem;}
+.mood-log-row .em{font-size:1.3rem;}
+.mood-log-row .d{color:var(--text-faint); font-size:.74rem; margin-left:auto;}
+
+/* ============ MODAL / SHEET ============ */
+.overlay{
+  position:fixed; inset:0; background:rgba(8,8,14,.6); backdrop-filter:blur(4px); z-index:90;
+  display:none; align-items:flex-end; justify-content:center;
+}
+.overlay.open{display:flex; animation:fadeIn .2s;}
+@keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
+.sheet{
+  width:100%; max-width:520px; background:var(--bg-elev); border-radius:26px 26px 0 0; border:1px solid var(--border); border-bottom:none;
+  padding:10px 22px 28px; max-height:88vh; overflow-y:auto; animation:sheetUp .32s cubic-bezier(.2,.9,.25,1);
+}
+@keyframes sheetUp{from{transform:translateY(30px); opacity:0;} to{transform:translateY(0); opacity:1;}}
+.sheet-handle{width:38px; height:4px; background:var(--border); border-radius:4px; margin:6px auto 16px;}
+.sheet h3{font-size:1.15rem; margin-bottom:16px;}
+.field{margin-bottom:14px;}
+.field label{display:block; font-size:.78rem; color:var(--text-dim); margin-bottom:6px; font-weight:600;}
+.field-row{display:flex; gap:10px;}
+.field-row .field{flex:1;}
+.seg-control{display:flex; gap:6px; background:var(--bg-elev-2); padding:4px; border-radius:100px;}
+.seg-btn{flex:1; border:none; background:transparent; padding:8px 4px; border-radius:100px; font-size:.78rem; font-weight:600; color:var(--text-dim);}
+.seg-btn.on{background:var(--bg-elev-3); color:var(--text);}
+.sheet-actions{display:flex; gap:10px; margin-top:18px;}
+.ai-breakdown-box{margin-top:6px; padding:12px; border-radius:var(--radius-s); background:var(--accent-soft); border:1px dashed var(--accent);}
+.ai-breakdown-box .lbl{font-size:.76rem; color:var(--accent); font-weight:700; display:flex; align-items:center; gap:6px;}
+.spinner{width:14px; height:14px; border:2px solid var(--accent-soft); border-top-color:var(--accent); border-radius:50%; animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ============ SETTINGS ============ */
+.guida-p{font-size:.87rem; color:var(--text-dim); line-height:1.6; margin:0;}
+.settings-row{display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--border-soft);}
+.settings-row:last-child{border:none;}
+.settings-row .lbl{font-size:.88rem; font-weight:600;}
+.settings-row .sub{font-size:.74rem; color:var(--text-faint); margin-top:2px;}
+.swatch-row{display:flex; gap:8px;}
+.swatch{width:34px; height:34px; border-radius:10px; border:2px solid transparent; cursor:pointer;}
+.swatch.sel{border-color:var(--text);}
+.switch{width:46px; height:26px; border-radius:100px; background:var(--bg-elev-3); position:relative; border:1px solid var(--border);}
+.switch::after{content:''; position:absolute; width:20px; height:20px; border-radius:50%; background:var(--text-faint); top:2px; left:2px; transition:all var(--dur);}
+.switch.on{background:var(--accent-soft); border-color:var(--accent);}
+.switch.on::after{left:22px; background:var(--accent);}
+
+/* toast */
+#toast{
+  position:fixed; bottom:130px; left:50%; transform:translateX(-50%) translateY(20px); z-index:100;
+  background:var(--bg-elev-3); color:var(--text); padding:11px 20px; border-radius:100px; font-size:.85rem; font-weight:600;
+  border:1px solid var(--border); opacity:0; pointer-events:none; transition:all .3s cubic-bezier(.2,.9,.25,1);
+  display:flex; align-items:center; gap:8px; box-shadow:var(--shadow-2);
+}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+#toast .dot{width:8px; height:8px; border-radius:50%; background:var(--accent-2);}
+
+.scrollhide::-webkit-scrollbar{display:none;}
+
+@media (min-width:521px){
+  #app{border-left:1px solid var(--border-soft); border-right:1px solid var(--border-soft);}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <div class="greet">
+      <div class="hello" id="greetText">Ciao 👋</div>
+      <div class="date" id="dateText"></div>
+    </div>
+    <div class="actions">
+      <div class="mood-dot-row" id="moodDots" title="Umore recente"></div>
+      <button class="icon-btn" id="btnMenu" aria-label="Guida e informazioni">
+        <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="12" cy="19" r="1.9"/></svg>
+      </button>
+      <button class="icon-btn" id="btnSettings" aria-label="Impostazioni">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <main>
+
+    <!-- ===================== VIEW: OGGI ===================== -->
+    <section class="view active" id="view-oggi">
+      <div class="section-label">Adesso<div class="rule"></div></div>
+      <div id="heroSlot"></div>
+
+      <div class="section-label">Oggi<div class="rule"></div></div>
+      <div class="timeline-scroll scrollhide" id="timelineSlot"></div>
+
+      <div class="section-label">Tutte le attività<div class="rule"></div></div>
+      <div id="taskListSlot"></div>
+    </section>
+
+    <!-- ===================== VIEW: FOCUS ===================== -->
+    <section class="view" id="view-focus">
+      <div class="section-label">Timer di concentrazione<div class="rule"></div></div>
+      <div class="focus-wrap" id="focusWrap">
+        <div class="ring-wrap">
+          <svg viewBox="0 0 200 200">
+            <circle class="ring-bg" cx="100" cy="100" r="88"/>
+            <circle class="ring-fg" id="ringFg" cx="100" cy="100" r="88" stroke-dasharray="553" stroke-dashoffset="0"/>
+          </svg>
+          <div class="ring-center">
+            <div class="ring-time mono" id="ringTime">25:00</div>
+            <div class="ring-label" id="ringLabel">Pronto quando vuoi tu</div>
+          </div>
+        </div>
+        <select class="focus-task-select" id="focusTaskSelect" style="margin-bottom:16px;">
+          <option value="">Nessuna attività collegata</option>
+        </select>
+        <div class="preset-row" id="presetRow"></div>
+        <div class="focus-controls">
+          <button class="btn btn-ghost btn-icon-only" id="btnResetTimer" aria-label="Reimposta">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+          </button>
+          <button class="btn btn-primary btn-block" id="btnToggleTimer">Inizia Focus</button>
+          <button class="btn btn-ghost btn-icon-only" id="btnSoundToggle" aria-label="Suono">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="soundIcon"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+          </button>
+        </div>
+        <div class="session-stats">
+          <div class="stat-box"><div class="num mono" id="statSessions">0</div><div class="lbl">Sessioni oggi</div></div>
+          <div class="stat-box"><div class="num mono" id="statMinutes">0</div><div class="lbl">Minuti focus</div></div>
+          <div class="stat-box"><div class="num mono" id="statStreak">0</div><div class="lbl">Giorni di fila</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== VIEW: ABITUDINI ===================== -->
+    <section class="view" id="view-abitudini">
+      <div class="section-label">Le tue abitudini<div class="rule"></div></div>
+      <div id="habitListSlot"></div>
+      <button class="btn btn-ghost btn-block" id="btnAddHabit" style="margin-top:6px;">+ Aggiungi abitudine</button>
+    </section>
+
+    <!-- ===================== VIEW: OBIETTIVI ===================== -->
+    <section class="view" id="view-obiettivi">
+      <div class="section-label">I tuoi obiettivi<div class="rule"></div></div>
+      <div id="goalListSlot"></div>
+      <button class="btn btn-ghost btn-block" id="btnAddGoal" style="margin-top:6px;">+ Nuovo obiettivo</button>
+    </section>
+
+    <!-- ===================== VIEW: UMORE ===================== -->
+    <section class="view" id="view-umore">
+      <div class="section-label">Come ti senti adesso?<div class="rule"></div></div>
+      <div class="card">
+        <div class="mood-picker" id="moodPicker"></div>
+        <div class="energy-slider-wrap">
+          <label>Livello di energia: <span id="energyVal">3</span>/5</label>
+          <input type="range" id="energySlider" min="1" max="5" value="3">
+        </div>
+        <div class="field" style="margin-top:14px;">
+          <label>Una nota veloce (facoltativa)</label>
+          <textarea id="moodNote" rows="2" placeholder="Cosa sta succedendo?"></textarea>
+        </div>
+        <button class="btn btn-primary btn-block" id="btnSaveMood">Registra umore</button>
+      </div>
+      <div class="mood-history">
+        <div class="section-label">Ultimi 14 giorni<div class="rule"></div></div>
+        <div class="card"><svg class="mood-chart" id="moodChart" viewBox="0 0 300 120" preserveAspectRatio="none"></svg></div>
+        <div id="moodLogSlot"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <nav class="bottomnav">
+    <button class="navbtn active" data-view="oggi">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>
+      <span>Oggi</span>
+    </button>
+    <button class="navbtn" data-view="focus">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>Focus</span>
+      <span class="live-badge" id="liveBadge" style="display:none;"></span>
+    </button>
+    <button class="navbtn" data-view="abitudini">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <span>Abitudini</span>
+    </button>
+    <button class="navbtn" data-view="obiettivi">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      <span>Obiettivi</span>
+    </button>
+    <button class="navbtn" data-view="umore">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+      <span>Umore</span>
+    </button>
+  </nav>
+
+  <button class="fab" id="btnFab" aria-label="Nuova attività">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+
+</div>
+
+<div id="toast"><span class="dot"></span><span id="toastMsg"></span></div>
+
+<!-- ============ SHEET: NUOVA ATTIVITA ============ -->
+<div class="overlay" id="overlayTask">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Nuova attività</h3>
+    <div class="field">
+      <label>Cosa devi fare?</label>
+      <input type="text" id="taskTitleInput" placeholder="Es. Scrivere email al cliente">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Orario</label>
+        <input type="text" id="taskTimeInput" placeholder="Es. 14:30">
+      </div>
+      <div class="field">
+        <label>Durata (min)</label>
+        <input type="number" id="taskDurationInput" placeholder="25">
+      </div>
+    </div>
+    <div class="field">
+      <label>Priorità</label>
+      <div class="seg-control" id="prioritySeg">
+        <button class="seg-btn" data-p="bassa">Bassa</button>
+        <button class="seg-btn on" data-p="media">Media</button>
+        <button class="seg-btn" data-p="alta">Alta</button>
+      </div>
+    </div>
+    <div class="ai-breakdown-box" id="aiBox" style="display:none;">
+      <div class="lbl">✨ Passi suggeriti</div>
+      <ul class="subtask-list" id="aiSubtaskPreview" style="margin-top:10px;"></ul>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost btn-block" id="btnAiBreakdown">✨ Spezza in passi con l'AI</button>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="btnCancelTask">Annulla</button>
+      <button class="btn btn-primary btn-block" id="btnSaveTask">Salva attività</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SHEET: NUOVA ABITUDINE ============ -->
+<div class="overlay" id="overlayHabit">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Nuova abitudine</h3>
+    <div class="field">
+      <label>Nome</label>
+      <input type="text" id="habitNameInput" placeholder="Es. Bere acqua">
+    </div>
+    <div class="field">
+      <label>Scegli un'icona</label>
+      <div class="seg-control" id="habitEmojiSeg" style="flex-wrap:wrap;">
+        <button class="seg-btn on" data-e="✅">✅</button>
+        <button class="seg-btn" data-e="💧">💧</button>
+        <button class="seg-btn" data-e="🏃">🏃</button>
+        <button class="seg-btn" data-e="📚">📚</button>
+        <button class="seg-btn" data-e="🧘">🧘</button>
+        <button class="seg-btn" data-e="💊">💊</button>
+        <button class="seg-btn" data-e="🛏️">🛏️</button>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="btnCancelHabit">Annulla</button>
+      <button class="btn btn-primary btn-block" id="btnSaveHabit">Crea abitudine</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SHEET: NUOVO OBIETTIVO ============ -->
+<div class="overlay" id="overlayGoal">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Nuovo obiettivo</h3>
+    <div class="field">
+      <label>Il tuo obiettivo</label>
+      <input type="text" id="goalTitleInput" placeholder="Es. Imparare l'inglese">
+    </div>
+    <div class="field">
+      <label>Tappe (una per riga, 2-5 consigliate)</label>
+      <textarea id="goalMilestonesInput" rows="4" placeholder="Es.&#10;Scaricare l'app&#10;Studiare 10 minuti al giorno&#10;Fare una conversazione"></textarea>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="btnCancelGoal">Annulla</button>
+      <button class="btn btn-primary btn-block" id="btnSaveGoal">Crea obiettivo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SHEET: GUIDA & INFO ============ -->
+<div class="overlay" id="overlayMenu">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="seg-control" id="menuTabSeg" style="margin-bottom:18px;">
+      <button class="seg-btn on" data-tab="guida">Guida</button>
+      <button class="seg-btn" data-tab="info">Info</button>
+    </div>
+
+    <div id="tabGuida">
+      <div class="section-label" style="margin-top:0;">Adesso<div class="rule"></div></div>
+      <p class="guida-p">Mostra sempre e solo il prossimo passo, mai la lista intera. Meno scelte da fare, meno energia mentale bruciata prima ancora di iniziare.</p>
+
+      <div class="section-label">Aggiungere un'attività<div class="rule"></div></div>
+      <p class="guida-p">Tocca il pulsante <b>+</b> in basso a destra. Se un'attività ti sembra troppo grande o vaga, usa <b>✨ Spezza in passi con l'AI</b>: la scompone in 3-5 micro-passi concreti, così parti da qualcosa di piccolo invece che restare bloccato.</p>
+
+      <div class="section-label">Timer di concentrazione<div class="rule"></div></div>
+      <p class="guida-p">Scegli una durata (15 / 25 / 45 minuti), collega un'attività se vuoi, e premi <b>Inizia Focus</b>. L'anello respira lentamente durante la sessione: seguilo con lo sguardo se ti aiuta a restare presente. Un suono ti avvisa quando il tempo è finito.</p>
+
+      <div class="section-label">Abitudini<div class="rule"></div></div>
+      <p class="guida-p">Un tocco al giorno registra l'abitudine. La griglia mostra gli ultimi 30 giorni: vedere la striscia che si allunga è la ricompensa visiva.</p>
+
+      <div class="section-label">Obiettivi<div class="rule"></div></div>
+      <p class="guida-p">Un obiettivo grande spaventa. Dividilo in 2-5 tappe piccole quando lo crei: la barra di avanzamento si riempie tappa dopo tappa, non tutto insieme.</p>
+
+      <div class="section-label">Umore<div class="rule"></div></div>
+      <p class="guida-p">Registra come ti senti quando vuoi, anche più volte al giorno. Il grafico degli ultimi 14 giorni ti aiuta a notare schemi — per esempio se l'energia cala sempre nello stesso momento della giornata.</p>
+
+      <div class="section-label">Promemoria<div class="rule"></div></div>
+      <p class="guida-p">Attivali dalle Impostazioni per ricevere una notifica 5 minuti prima di un'attività con orario impostato.</p>
+
+      <div class="section-label">Privacy<div class="rule"></div></div>
+      <p class="guida-p">Tutti i tuoi dati restano solo su questo dispositivo, dentro il browser. Nessun account, nessun server. Se cancelli i dati dalle Impostazioni, l'operazione è definitiva.</p>
+    </div>
+
+    <div id="tabInfo" style="display:none;">
+      <div style="text-align:center; padding:14px 0 22px;">
+        <div style="width:64px; height:64px; border-radius:20px; margin:0 auto 14px; background:linear-gradient(160deg, var(--accent), var(--accent-2)); display:flex; align-items:center; justify-content:center;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2" fill="#fff"/></svg>
+        </div>
+        <h3 style="font-size:1.2rem;">Utility ADHD</h3>
+        <p style="color:var(--text-dim); font-size:.85rem; margin-top:4px;">Creata da Miki <span style="color:var(--text-faint);">×</span> Claude</p>
+      </div>
+      <div class="card">
+        <p class="guida-p" style="margin:0;">Uno spazio unico per gestire attività, concentrazione, abitudini, obiettivi e umore — pensato per come funziona davvero una mente con ADHD: un passo alla volta, con rinforzi visivi immediati e il minimo attrito possibile.</p>
+      </div>
+      <div class="card">
+        <div class="settings-row" style="border:none; padding:6px 0;"><div class="lbl">Versione</div><div class="sub" style="margin-top:0;">1.0.0</div></div>
+        <div class="settings-row" style="border:none; padding:6px 0;"><div class="lbl">Dati</div><div class="sub" style="margin-top:0;">Salvati solo su questo dispositivo</div></div>
+        <div class="settings-row" style="border:none; padding:6px 0;"><div class="lbl">Funziona offline</div><div class="sub" style="margin-top:0;">Sì, come app installata</div></div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-block" id="btnCloseMenu" style="margin-top:8px;">Chiudi</button>
+  </div>
+</div>
+
+<!-- ============ SHEET: IMPOSTAZIONI ============ -->
+<div class="overlay" id="overlaySettings">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>Impostazioni</h3>
+
+    <div class="settings-row">
+      <div><div class="lbl">Tema</div><div class="sub">Chiaro o scuro</div></div>
+      <div class="seg-control" id="themeSeg" style="width:150px;">
+        <button class="seg-btn on" data-t="dark">Scuro</button>
+        <button class="seg-btn" data-t="light">Chiaro</button>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <div><div class="lbl">Colore accento</div><div class="sub">Scegli il tuo colore</div></div>
+      <div class="swatch-row" id="accentSwatches"></div>
+    </div>
+
+    <div class="settings-row">
+      <div><div class="lbl">Dimensione testo</div><div class="sub">Per una lettura più comoda</div></div>
+      <div class="seg-control" id="sizeSeg" style="width:180px;">
+        <button class="seg-btn on" data-s="normale">A</button>
+        <button class="seg-btn" data-s="grande">A</button>
+        <button class="seg-btn" data-s="xl">A</button>
+      </div>
+    </div>
+
+    <div class="settings-row">
+      <div><div class="lbl">Font per dislessia</div><div class="sub">Atkinson Hyperlegible</div></div>
+      <div class="switch" id="toggleDyslexia"></div>
+    </div>
+
+    <div class="settings-row">
+      <div><div class="lbl">Riduci le animazioni</div><div class="sub">Meno movimento sullo schermo</div></div>
+      <div class="switch" id="toggleMotion"></div>
+    </div>
+
+    <div class="settings-row">
+      <div><div class="lbl">Suoni del timer</div><div class="sub">Segnale acustico a fine focus</div></div>
+      <div class="switch" id="toggleSound"></div>
+    </div>
+
+    <div class="settings-row">
+      <div><div class="lbl">Promemoria</div><div class="sub">Notifiche del browser</div></div>
+      <div class="switch" id="toggleReminders"></div>
+    </div>
+
+    <div class="settings-row">
+      <div><div class="lbl">Il tuo nome</div></div>
+      <input type="text" id="userNameInput" style="width:140px;" placeholder="Tu">
+    </div>
+
+    <button class="btn btn-ghost btn-block" id="btnResetAll" style="margin-top:18px; color:var(--danger);">Cancella tutti i dati</button>
+    <button class="btn btn-primary btn-block" id="btnCloseSettings" style="margin-top:10px;">Fatto</button>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   STORAGE
+=============================================================== */
+const STORE_KEY = 'fuoco_adhd_v1';
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const todayStr = () => new Date().toISOString().slice(0,10);
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return {
+    tasks: [],
+    habits: [],
+    goals: [],
+    moods: [],
+    focusLog: {}, // date -> {sessions, minutes}
+    settings: {
+      theme:'dark', accent:'violet', fontSize:'normale', dyslexia:false,
+      reducedMotion:false, timerSound:true, reminders:false, name:''
+    }
+  };
+}
+let state = loadState();
+function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+
+/* ============================================================
+   SETTINGS APPLY
+=============================================================== */
+const ACCENTS = {
+  violet:'#8b7fe8', corallo:'#ff9166', menta:'#5fd9a6', ambra:'#ffd166', ciano:'#5fc7e8', rosa:'#e88bc0'
+};
+function applySettings(){
+  const s = state.settings;
+  document.documentElement.setAttribute('data-theme', s.theme);
+  document.documentElement.setAttribute('data-size', s.fontSize);
+  document.documentElement.setAttribute('data-font', s.dyslexia ? 'dislexia' : 'normale');
+  document.documentElement.setAttribute('data-motion', s.reducedMotion ? 'reduced' : 'normal');
+  document.documentElement.style.setProperty('--accent', ACCENTS[s.accent] || ACCENTS.violet);
+  document.documentElement.style.setProperty('--accent-soft', (ACCENTS[s.accent]||ACCENTS.violet)+'30');
+}
+
+/* ============================================================
+   TOAST
+=============================================================== */
+let toastTimer;
+function toast(msg){
+  const el = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove('show'), 2400);
+}
+
+/* ============================================================
+   NAVIGATION
+=============================================================== */
+const views = ['oggi','focus','abitudini','obiettivi','umore'];
+function goToView(name){
+  views.forEach(v=>{
+    document.getElementById('view-'+v).classList.toggle('active', v===name);
+  });
+  document.querySelectorAll('.navbtn').forEach(b=> b.classList.toggle('active', b.dataset.view===name));
+  document.getElementById('btnFab').style.display = (name==='oggi') ? 'flex' : 'none';
+}
+document.querySelectorAll('.navbtn').forEach(btn=>{
+  btn.addEventListener('click', ()=> goToView(btn.dataset.view));
+});
+
+/* ============================================================
+   GREETING / DATE
+=============================================================== */
+function renderGreeting(){
+  const h = new Date().getHours();
+  let g = 'Buonasera';
+  if(h < 12) g = 'Buongiorno';
+  else if(h < 18) g = 'Buon pomeriggio';
+  const name = state.settings.name ? `, ${state.settings.name}` : '';
+  document.getElementById('greetText').textContent = `${g}${name} 👋`;
+  const d = new Date();
+  document.getElementById('dateText').textContent = d.toLocaleDateString('it-IT', {weekday:'long', day:'numeric', month:'long'});
+}
+
+/* ============================================================
+   ICONS (reusable svg strings)
+=============================================================== */
+const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+
+/* ============================================================
+   TASKS
+=============================================================== */
+function todaysTasks(){
+  return state.tasks.filter(t => !t.date || t.date === todayStr());
+}
+function nextTask(){
+  const open = todaysTasks().filter(t=>!t.done);
+  if(!open.length) return null;
+  const order = {alta:0, media:1, bassa:2};
+  open.sort((a,b)=>{
+    if((a.time||'') !== (b.time||'')) return (a.time||'99:99').localeCompare(b.time||'99:99');
+    return order[a.priority]-order[b.priority];
+  });
+  return open[0];
+}
+
+function renderHero(){
+  const slot = document.getElementById('heroSlot');
+  const t = nextTask();
+  if(!t){
+    slot.innerHTML = `
+      <div class="hero empty-hero">
+        <span class="big-emoji">🌿</span>
+        <h2 style="font-size:1.15rem;">Nessuna attività in programma</h2>
+        <p>Aggiungi qualcosa di piccolo: un solo passo è già un inizio.</p>
+        <button class="btn btn-primary" id="heroAddBtn">+ Aggiungi la prima attività</button>
+      </div>`;
+    document.getElementById('heroAddBtn').addEventListener('click', openTaskSheet);
+    return;
+  }
+  const doneSub = (t.subtasks||[]).filter(s=>s.done).length;
+  const totSub = (t.subtasks||[]).length;
+  slot.innerHTML = `
+    <div class="hero">
+      <div class="eyebrow">Il prossimo passo</div>
+      <h2>${escapeHtml(t.title)}</h2>
+      <div class="meta-row">
+        ${t.time ? `<span class="chip">🕐 ${escapeHtml(t.time)}</span>` : ''}
+        ${t.duration ? `<span class="chip">⏱ ${t.duration} min</span>` : ''}
+        <span class="chip priority-${t.priority}">${t.priority==='alta'?'🔴 Alta':t.priority==='media'?'🟡 Media':'🟢 Bassa'}</span>
+        ${totSub ? `<span class="chip">✅ ${doneSub}/${totSub} passi</span>` : ''}
+      </div>
+      <div class="hero-actions">
+        <button class="btn btn-primary" id="heroFocusBtn">▶ Inizia Focus</button>
+        <button class="btn btn-ghost" id="heroDoneBtn">Segna fatto</button>
+      </div>
+    </div>`;
+  document.getElementById('heroFocusBtn').addEventListener('click', ()=>{
+    pendingFocusTaskId = t.id;
+    goToView('focus');
+    syncFocusTaskSelect();
+  });
+  document.getElementById('heroDoneBtn').addEventListener('click', ()=>{
+    t.done = true; save(); renderAll(); toast('Ottimo lavoro! 🎉');
+  });
+}
+
+function renderTimeline(){
+  const slot = document.getElementById('timelineSlot');
+  const items = todaysTasks().filter(t=>t.time).sort((a,b)=> a.time.localeCompare(b.time));
+  if(!items.length){ slot.innerHTML = `<div class="empty-state" style="width:100%;"><span class="big-emoji">🗓️</span><p>Nessun orario impostato per oggi</p></div>`; return; }
+  const now = new Date(); const nowM = now.getHours()*60+now.getMinutes();
+  slot.innerHTML = items.map(t=>{
+    const [hh,mm] = (t.time||'0:0').split(':').map(Number);
+    const tm = hh*60+(mm||0);
+    const isCurrent = !t.done && Math.abs(tm-nowM) < 30;
+    return `<div class="tl-block ${t.done?'done':''} ${isCurrent?'current':''}">
+      <div class="tl-time">${escapeHtml(t.time)}</div>
+      <div class="tl-title">${escapeHtml(t.title)}</div>
+      <button class="tl-check ${t.done?'on':''}" data-id="${t.id}">${ICON_CHECK}</button>
+    </div>`;
+  }).join('');
+  slot.querySelectorAll('.tl-check').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const t = state.tasks.find(x=>x.id===b.dataset.id);
+      t.done = !t.done; save(); renderAll();
+    });
+  });
+}
+
+function renderTaskList(){
+  const slot = document.getElementById('taskListSlot');
+  const items = todaysTasks();
+  if(!items.length){ slot.innerHTML = `<div class="empty-state"><span class="big-emoji">✨</span><p>La tua lista è pulita. Aggiungi qualcosa quando vuoi.</p></div>`; return; }
+  const order = {alta:0, media:1, bassa:2};
+  items.sort((a,b)=> (a.done - b.done) || order[a.priority]-order[b.priority]);
+  slot.innerHTML = `<div class="card" style="padding:6px 14px;">` + items.map(t=>{
+    const doneSub = (t.subtasks||[]).filter(s=>s.done).length;
+    const totSub = (t.subtasks||[]).length;
+    return `
+    <div class="task-row ${t.done?'done':''}" data-id="${t.id}">
+      <button class="task-check ${t.done?'on':''}" data-act="toggle">${ICON_CHECK}</button>
+      <div class="task-body">
+        <div class="task-title">${escapeHtml(t.title)}</div>
+        <div class="task-sub">
+          ${t.time ? `<span class="time">${escapeHtml(t.time)}</span>` : ''}
+          ${t.duration ? `<span class="time">· ${t.duration}min</span>` : ''}
+          ${totSub ? `<span class="subtask-progress">${doneSub}/${totSub} passi</span>` : ''}
+        </div>
+        ${totSub ? `<ul class="subtask-list">${t.subtasks.map(s=>`
+          <li class="${s.done?'on':''}" data-sid="${s.id}">
+            <button class="sc ${s.done?'on':''}" data-act="togglesub" data-sid="${s.id}">${ICON_CHECK}</button>
+            <span>${escapeHtml(s.text)}</span>
+          </li>`).join('')}</ul>` : ''}
+      </div>
+      <div class="task-actions">
+        <button class="mini-btn" data-act="del" aria-label="Elimina">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('') + `</div>`;
+
+  slot.querySelectorAll('[data-act="toggle"]').forEach(b=>{
+    b.addEventListener('click', (e)=>{
+      const id = e.target.closest('.task-row').dataset.id;
+      const t = state.tasks.find(x=>x.id===id);
+      t.done = !t.done; save(); renderAll();
+      if(t.done) toast('Attività completata! 🎉');
+    });
+  });
+  slot.querySelectorAll('[data-act="togglesub"]').forEach(b=>{
+    b.addEventListener('click', (e)=>{
+      const row = e.target.closest('.task-row');
+      const id = row.dataset.id;
+      const sid = b.dataset.sid;
+      const t = state.tasks.find(x=>x.id===id);
+      const s = t.subtasks.find(x=>x.id===sid);
+      s.done = !s.done; save(); renderAll();
+    });
+  });
+  slot.querySelectorAll('[data-act="del"]').forEach(b=>{
+    b.addEventListener('click', (e)=>{
+      const id = e.target.closest('.task-row').dataset.id;
+      state.tasks = state.tasks.filter(x=>x.id!==id); save(); renderAll();
+    });
+  });
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div'); d.textContent = str||''; return d.innerHTML;
+}
+
+/* ---------- Task creation sheet ---------- */
+let aiSuggestedSubtasks = [];
+let currentPriority = 'media';
+
+function openTaskSheet(){
+  document.getElementById('taskTitleInput').value = '';
+  document.getElementById('taskTimeInput').value = '';
+  document.getElementById('taskDurationInput').value = '';
+  document.getElementById('aiBox').style.display = 'none';
+  aiSuggestedSubtasks = [];
+  currentPriority = 'media';
+  document.querySelectorAll('#prioritySeg .seg-btn').forEach(b=> b.classList.toggle('on', b.dataset.p==='media'));
+  document.getElementById('overlayTask').classList.add('open');
+  setTimeout(()=> document.getElementById('taskTitleInput').focus(), 250);
+}
+document.getElementById('btnFab').addEventListener('click', openTaskSheet);
+document.getElementById('btnCancelTask').addEventListener('click', ()=> document.getElementById('overlayTask').classList.remove('open'));
+document.getElementById('overlayTask').addEventListener('click', (e)=>{ if(e.target.id==='overlayTask') e.currentTarget.classList.remove('open'); });
+
+document.getElementById('prioritySeg').addEventListener('click', (e)=>{
+  const b = e.target.closest('.seg-btn'); if(!b) return;
+  currentPriority = b.dataset.p;
+  document.querySelectorAll('#prioritySeg .seg-btn').forEach(x=> x.classList.toggle('on', x===b));
+});
+
+document.getElementById('btnSaveTask').addEventListener('click', ()=>{
+  const title = document.getElementById('taskTitleInput').value.trim();
+  if(!title){ toast('Scrivi prima un titolo'); return; }
+  const task = {
+    id: uid(),
+    title,
+    time: document.getElementById('taskTimeInput').value.trim(),
+    duration: parseInt(document.getElementById('taskDurationInput').value) || null,
+    priority: currentPriority,
+    done: false,
+    date: todayStr(),
+    subtasks: aiSuggestedSubtasks.map(s=>({id:uid(), text:s, done:false}))
+  };
+  state.tasks.push(task);
+  save();
+  document.getElementById('overlayTask').classList.remove('open');
+  renderAll();
+  toast('Attività aggiunta ✨');
+});
+
+/* ---------- AI breakdown via Anthropic API ---------- */
+function localFallbackBreakdown(title){
+  return [
+    `Prepara tutto ciò che ti serve per: ${title}`,
+    `Dedica 5 minuti solo a iniziare`,
+    `Porta avanti la parte principale`,
+    `Rivedi e concludi`
+  ];
+}
+
+document.getElementById('btnAiBreakdown').addEventListener('click', async ()=>{
+  const title = document.getElementById('taskTitleInput').value.trim();
+  if(!title){ toast('Scrivi prima un titolo'); return; }
+  const box = document.getElementById('aiBox');
+  const list = document.getElementById('aiSubtaskPreview');
+  box.style.display = 'block';
+  list.innerHTML = `<li><span class="spinner"></span>&nbsp; Sto pensando ai passi migliori...</li>`;
+
+  try{
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 500,
+        messages: [{
+          role: "user",
+          content: `Sei un assistente per persone con ADHD. Scomponi questa attività in 3-5 passi piccolissimi, concreti e non intimidatori, in italiano. Rispondi SOLO con un array JSON di stringhe, senza altro testo, senza markdown. Attività: "${title}"`
+        }]
+      })
+    });
+    const data = await response.json();
+    const text = (data.content || []).map(b=>b.text||'').join('');
+    const clean = text.replace(/```json|```/g,'').trim();
+    let steps = JSON.parse(clean);
+    if(!Array.isArray(steps) || !steps.length) throw new Error('empty');
+    aiSuggestedSubtasks = steps.slice(0,6);
+  }catch(err){
+    aiSuggestedSubtasks = localFallbackBreakdown(title);
+  }
+  list.innerHTML = aiSuggestedSubtasks.map(s=>`<li><span class="sc on">${ICON_CHECK}</span><span>${escapeHtml(s)}</span></li>`).join('');
+});
+
+/* ============================================================
+   FOCUS TIMER
+=============================================================== */
+const PRESETS = [ {label:'15 min', sec:15*60}, {label:'25 min', sec:25*60}, {label:'45 min', sec:45*60}, {label:'Pausa 5', sec:5*60} ];
+let timerTotal = 25*60;
+let timerLeft = 25*60;
+let timerRunning = false;
+let timerInterval = null;
+let pendingFocusTaskId = '';
+
+function renderPresets(){
+  const row = document.getElementById('presetRow');
+  row.innerHTML = PRESETS.map((p,i)=>`<button class="preset-chip ${p.sec===timerTotal?'active':''}" data-sec="${p.sec}">${p.label}</button>`).join('');
+  row.querySelectorAll('.preset-chip').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      if(timerRunning) return;
+      timerTotal = parseInt(b.dataset.sec); timerLeft = timerTotal;
+      renderPresets(); updateRing();
+    });
+  });
+}
+
+function syncFocusTaskSelect(){
+  const sel = document.getElementById('focusTaskSelect');
+  const open = todaysTasks().filter(t=>!t.done);
+  sel.innerHTML = `<option value="">Nessuna attività collegata</option>` + open.map(t=>`<option value="${t.id}">${escapeHtml(t.title)}</option>`).join('');
+  if(pendingFocusTaskId) sel.value = pendingFocusTaskId;
+}
+
+function fmtTime(s){
+  const m = Math.floor(s/60), sec = s%60;
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+const RING_CIRC = 2*Math.PI*88;
+function updateRing(){
+  document.getElementById('ringTime').textContent = fmtTime(timerLeft);
+  const frac = 1 - (timerLeft/timerTotal);
+  document.getElementById('ringFg').style.strokeDasharray = RING_CIRC;
+  document.getElementById('ringFg').style.strokeDashoffset = RING_CIRC*(1-frac);
+  document.getElementById('ringLabel').textContent = timerRunning ? 'Respira, sei sulla strada giusta' : 'Pronto quando vuoi tu';
+}
+
+function beep(){
+  if(!state.settings.timerSound) return;
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = 660;
+    o.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.15, ctx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.9);
+    o.start(); o.stop(ctx.currentTime+0.9);
+  }catch(e){}
+}
+
+function logFocusSession(minutes){
+  const d = todayStr();
+  if(!state.focusLog[d]) state.focusLog[d] = {sessions:0, minutes:0};
+  state.focusLog[d].sessions += 1;
+  state.focusLog[d].minutes += minutes;
+  save();
+  renderFocusStats();
+}
+
+function tickTimer(){
+  timerLeft -= 1;
+  if(timerLeft <= 0){
+    clearInterval(timerInterval); timerInterval = null; timerRunning = false;
+    beep();
+    document.getElementById('liveBadge').style.display = 'none';
+    document.getElementById('btnToggleTimer').textContent = 'Inizia Focus';
+    document.getElementById('focusWrap').classList.remove('breathing');
+    logFocusSession(Math.round(timerTotal/60));
+    if(pendingFocusTaskId){
+      const t = state.tasks.find(x=>x.id===pendingFocusTaskId);
+      if(t){ t.done = true; save(); renderAll(); }
+    }
+    toast('Sessione completata! Fai una pausa 🌿');
+    timerLeft = timerTotal;
+  }
+  updateRing();
+}
+
+document.getElementById('btnToggleTimer').addEventListener('click', ()=>{
+  timerRunning = !timerRunning;
+  const btn = document.getElementById('btnToggleTimer');
+  const badge = document.getElementById('liveBadge');
+  if(timerRunning){
+    pendingFocusTaskId = document.getElementById('focusTaskSelect').value;
+    timerInterval = setInterval(tickTimer, 1000);
+    btn.textContent = 'Metti in pausa';
+    badge.style.display = 'block';
+    document.getElementById('focusWrap').classList.add('breathing');
+  }else{
+    clearInterval(timerInterval); timerInterval = null;
+    btn.textContent = 'Riprendi';
+    badge.style.display = 'none';
+    document.getElementById('focusWrap').classList.remove('breathing');
+  }
+  updateRing();
+});
+document.getElementById('btnResetTimer').addEventListener('click', ()=>{
+  clearInterval(timerInterval); timerInterval = null; timerRunning = false;
+  timerLeft = timerTotal;
+  document.getElementById('btnToggleTimer').textContent = 'Inizia Focus';
+  document.getElementById('liveBadge').style.display = 'none';
+  document.getElementById('focusWrap').classList.remove('breathing');
+  updateRing();
+});
+document.getElementById('btnSoundToggle').addEventListener('click', ()=>{
+  state.settings.timerSound = !state.settings.timerSound; save();
+  document.getElementById('soundIcon').style.opacity = state.settings.timerSound ? '1' : '.35';
+  toast(state.settings.timerSound ? 'Suono attivo' : 'Suono disattivato');
+});
+
+function habitStreakDays(){
+  // consecutive days with at least one focus session or habit check
+  let streak = 0;
+  for(let i=0;i<365;i++){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const ds = d.toISOString().slice(0,10);
+    const hasFocus = state.focusLog[ds] && state.focusLog[ds].sessions>0;
+    if(hasFocus) streak++; else break;
+  }
+  return streak;
+}
+function renderFocusStats(){
+  const d = todayStr();
+  const log = state.focusLog[d] || {sessions:0, minutes:0};
+  document.getElementById('statSessions').textContent = log.sessions;
+  document.getElementById('statMinutes').textContent = log.minutes;
+  document.getElementById('statStreak').textContent = habitStreakDays();
+}
+
+/* ============================================================
+   HABITS
+=============================================================== */
+function last30(){
+  const arr = [];
+  for(let i=29;i>=0;i--){ const d = new Date(); d.setDate(d.getDate()-i); arr.push(d.toISOString().slice(0,10)); }
+  return arr;
+}
+function computeHabitStreak(h){
+  let s = 0;
+  for(let i=0;i<365;i++){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const ds = d.toISOString().slice(0,10);
+    if(h.history[ds]) s++; else break;
+  }
+  return s;
+}
+function renderHabits(){
+  const slot = document.getElementById('habitListSlot');
+  if(!state.habits.length){ slot.innerHTML = `<div class="empty-state"><span class="big-emoji">🌱</span><p>Nessuna abitudine ancora. Inizia con qualcosa di piccolo.</p></div>`; return; }
+  const t = todayStr();
+  const days = last30();
+  slot.innerHTML = state.habits.map(h=>{
+    const on = !!h.history[t];
+    const streak = computeHabitStreak(h);
+    return `
+    <div class="card habit-card" data-id="${h.id}">
+      <div class="habit-emoji">${h.emoji}</div>
+      <div class="habit-info">
+        <div class="habit-name">${escapeHtml(h.name)}</div>
+        <div class="habit-streak">${streak>0 ? `🔥 ${streak} giorni di fila` : 'Inizia oggi'}</div>
+        <div class="habit-grid">${days.map(d=>`<div class="hg-cell ${h.history[d]?'on':''}"></div>`).join('')}</div>
+      </div>
+      <button class="habit-toggle ${on?'on':''}" data-act="toggle">${ICON_CHECK}</button>
+    </div>`;
+  }).join('');
+  slot.querySelectorAll('[data-act="toggle"]').forEach(b=>{
+    b.addEventListener('click', (e)=>{
+      const id = e.target.closest('.habit-card').dataset.id;
+      const h = state.habits.find(x=>x.id===id);
+      const t = todayStr();
+      if(h.history[t]) delete h.history[t]; else { h.history[t]=true; toast('Abitudine registrata 🌟'); }
+      save(); renderHabits();
+    });
+  });
+}
+document.getElementById('btnAddHabit').addEventListener('click', ()=>{
+  document.getElementById('habitNameInput').value = '';
+  document.querySelectorAll('#habitEmojiSeg .seg-btn').forEach((b,i)=> b.classList.toggle('on', i===0));
+  document.getElementById('overlayHabit').classList.add('open');
+});
+document.getElementById('btnCancelHabit').addEventListener('click', ()=> document.getElementById('overlayHabit').classList.remove('open'));
+document.getElementById('overlayHabit').addEventListener('click', (e)=>{ if(e.target.id==='overlayHabit') e.currentTarget.classList.remove('open'); });
+let currentHabitEmoji = '✅';
+document.getElementById('habitEmojiSeg').addEventListener('click', (e)=>{
+  const b = e.target.closest('.seg-btn'); if(!b) return;
+  currentHabitEmoji = b.dataset.e;
+  document.querySelectorAll('#habitEmojiSeg .seg-btn').forEach(x=> x.classList.toggle('on', x===b));
+});
+document.getElementById('btnSaveHabit').addEventListener('click', ()=>{
+  const name = document.getElementById('habitNameInput').value.trim();
+  if(!name){ toast('Scrivi un nome'); return; }
+  state.habits.push({id:uid(), name, emoji:currentHabitEmoji, history:{}});
+  save(); document.getElementById('overlayHabit').classList.remove('open'); renderHabits(); toast('Abitudine creata 🌱');
+});
+
+/* ============================================================
+   GOALS
+=============================================================== */
+function renderGoals(){
+  const slot = document.getElementById('goalListSlot');
+  if(!state.goals.length){ slot.innerHTML = `<div class="empty-state"><span class="big-emoji">🎯</span><p>Nessun obiettivo ancora. Definiscine uno e dividilo in piccole tappe.</p></div>`; return; }
+  slot.innerHTML = state.goals.map(g=>{
+    const done = g.milestones.filter(m=>m.done).length;
+    const tot = g.milestones.length || 1;
+    const pct = Math.round(done/tot*100);
+    return `
+    <div class="card goal-card" data-id="${g.id}">
+      <div class="goal-top">
+        <div class="goal-title">${escapeHtml(g.title)}</div>
+        <button class="mini-btn" data-act="delgoal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
+      </div>
+      <div class="goal-bar-track"><div class="goal-bar-fill" style="width:${pct}%"></div></div>
+      <div class="goal-pct">${pct}% completato · ${done}/${tot} tappe</div>
+      <div class="milestone-list">
+        ${g.milestones.map(m=>`
+          <div class="milestone ${m.done?'on':''}" data-mid="${m.id}">
+            <button class="mc ${m.done?'on':''}" data-act="togglemilestone" data-mid="${m.id}">${ICON_CHECK}</button>
+            <span>${escapeHtml(m.text)}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+  slot.querySelectorAll('[data-act="togglemilestone"]').forEach(b=>{
+    b.addEventListener('click', (e)=>{
+      const id = e.target.closest('.goal-card').dataset.id;
+      const mid = b.dataset.mid;
+      const g = state.goals.find(x=>x.id===id);
+      const m = g.milestones.find(x=>x.id===mid);
+      m.done = !m.done; save(); renderGoals();
+      if(g.milestones.every(x=>x.done)) toast('Obiettivo completato! 🏆');
+    });
+  });
+  slot.querySelectorAll('[data-act="delgoal"]').forEach(b=>{
+    b.addEventListener('click', (e)=>{
+      const id = e.target.closest('.goal-card').dataset.id;
+      state.goals = state.goals.filter(x=>x.id!==id); save(); renderGoals();
+    });
+  });
+}
+document.getElementById('btnAddGoal').addEventListener('click', ()=>{
+  document.getElementById('goalTitleInput').value = '';
+  document.getElementById('goalMilestonesInput').value = '';
+  document.getElementById('overlayGoal').classList.add('open');
+});
+document.getElementById('btnCancelGoal').addEventListener('click', ()=> document.getElementById('overlayGoal').classList.remove('open'));
+document.getElementById('overlayGoal').addEventListener('click', (e)=>{ if(e.target.id==='overlayGoal') e.currentTarget.classList.remove('open'); });
+document.getElementById('btnSaveGoal').addEventListener('click', ()=>{
+  const title = document.getElementById('goalTitleInput').value.trim();
+  const lines = document.getElementById('goalMilestonesInput').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!title){ toast('Scrivi un titolo'); return; }
+  state.goals.push({id:uid(), title, milestones: lines.map(t=>({id:uid(), text:t, done:false}))});
+  save(); document.getElementById('overlayGoal').classList.remove('open'); renderGoals(); toast('Obiettivo creato 🎯');
+});
+
+/* ============================================================
+   MOOD
+=============================================================== */
+const MOODS = [
+  {v:1, e:'😞', label:'Difficile'},
+  {v:2, e:'😕', label:'Così così'},
+  {v:3, e:'😐', label:'Nella media'},
+  {v:4, e:'🙂', label:'Bene'},
+  {v:5, e:'😄', label:'Ottimo'},
+];
+let selectedMood = 3;
+function renderMoodPicker(){
+  const el = document.getElementById('moodPicker');
+  el.innerHTML = MOODS.map(m=>`<button class="mood-opt ${m.v===selectedMood?'sel':''}" data-v="${m.v}" title="${m.label}">${m.e}</button>`).join('');
+  el.querySelectorAll('.mood-opt').forEach(b=>{
+    b.addEventListener('click', ()=>{ selectedMood = parseInt(b.dataset.v); renderMoodPicker(); });
+  });
+}
+document.getElementById('energySlider').addEventListener('input', (e)=>{
+  document.getElementById('energyVal').textContent = e.target.value;
+});
+document.getElementById('btnSaveMood').addEventListener('click', ()=>{
+  const entry = {
+    id: uid(), date: new Date().toISOString(),
+    mood: selectedMood,
+    energy: parseInt(document.getElementById('energySlider').value),
+    note: document.getElementById('moodNote').value.trim()
+  };
+  state.moods.push(entry); save();
+  document.getElementById('moodNote').value = '';
+  renderMoodDots(); renderMoodHistory(); toast('Umore registrato 💜');
+});
+
+function renderMoodDots(){
+  const el = document.getElementById('moodDots');
+  const recent = state.moods.slice(-3);
+  const dots = [0,1,2].map(i=>{
+    const m = recent[recent.length-3+i];
+    return `<div class="mood-dot ${m ? 'filled':''}"></div>`;
+  }).join('');
+  el.innerHTML = dots;
+}
+
+function renderMoodChart(){
+  const svg = document.getElementById('moodChart');
+  const days = [];
+  for(let i=13;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); days.push(d.toISOString().slice(0,10)); }
+  const points = days.map(d=>{
+    const entries = state.moods.filter(m=>m.date.slice(0,10)===d);
+    if(!entries.length) return null;
+    const avg = entries.reduce((a,b)=>a+b.mood,0)/entries.length;
+    return avg;
+  });
+  const W=300,H=120,pad=10;
+  const validIdx = points.map((p,i)=>p!==null?i:null).filter(i=>i!==null);
+  if(!validIdx.length){ svg.innerHTML = `<text x="150" y="60" text-anchor="middle" fill="var(--text-faint)" font-size="11">Nessun dato ancora</text>`; return; }
+  const xStep = (W-2*pad)/(days.length-1);
+  const yFor = v => H-pad - ((v-1)/4)*(H-2*pad);
+  let path = '';
+  let started = false;
+  points.forEach((p,i)=>{
+    if(p===null) return;
+    const x = pad + i*xStep, y = yFor(p);
+    path += (started?' L':'M') + x + ' ' + y;
+    started = true;
+  });
+  let circles = points.map((p,i)=>{
+    if(p===null) return '';
+    const x = pad+i*xStep, y = yFor(p);
+    return `<circle cx="${x}" cy="${y}" r="3" fill="var(--accent)"/>`;
+  }).join('');
+  svg.innerHTML = `<path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${circles}`;
+}
+
+function renderMoodHistory(){
+  const slot = document.getElementById('moodLogSlot');
+  const recent = [...state.moods].reverse().slice(0,10);
+  if(!recent.length){ slot.innerHTML = ''; return; }
+  slot.innerHTML = `<div class="card" style="padding:6px 14px;">` + recent.map(m=>{
+    const mo = MOODS.find(x=>x.v===m.mood);
+    const d = new Date(m.date);
+    return `<div class="mood-log-row">
+      <span class="em">${mo.e}</span>
+      <span>${escapeHtml(mo.label)} · energia ${m.energy}/5${m.note ? ' — '+escapeHtml(m.note) : ''}</span>
+      <span class="d">${d.toLocaleDateString('it-IT',{day:'numeric',month:'short'})}</span>
+    </div>`;
+  }).join('') + `</div>`;
+  renderMoodChart();
+}
+
+/* ============================================================
+   GUIDA & INFO MENU
+=============================================================== */
+document.getElementById('btnMenu').addEventListener('click', ()=>{
+  document.getElementById('overlayMenu').classList.add('open');
+});
+document.getElementById('btnCloseMenu').addEventListener('click', ()=> document.getElementById('overlayMenu').classList.remove('open'));
+document.getElementById('overlayMenu').addEventListener('click', (e)=>{ if(e.target.id==='overlayMenu') e.currentTarget.classList.remove('open'); });
+document.getElementById('menuTabSeg').addEventListener('click', (e)=>{
+  const b = e.target.closest('.seg-btn'); if(!b) return;
+  document.querySelectorAll('#menuTabSeg .seg-btn').forEach(x=> x.classList.toggle('on', x===b));
+  document.getElementById('tabGuida').style.display = b.dataset.tab==='guida' ? 'block' : 'none';
+  document.getElementById('tabInfo').style.display = b.dataset.tab==='info' ? 'block' : 'none';
+});
+
+/* ============================================================
+   SERVICE WORKER (PWA offline support)
+=============================================================== */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  });
+}
+
+/* ============================================================
+   SETTINGS SHEET
+=============================================================== */
+document.getElementById('btnSettings').addEventListener('click', ()=>{
+  syncSettingsUI();
+  document.getElementById('overlaySettings').classList.add('open');
+});
+document.getElementById('btnCloseSettings').addEventListener('click', ()=> document.getElementById('overlaySettings').classList.remove('open'));
+document.getElementById('overlaySettings').addEventListener('click', (e)=>{ if(e.target.id==='overlaySettings') e.currentTarget.classList.remove('open'); });
+
+function buildAccentSwatches(){
+  const row = document.getElementById('accentSwatches');
+  row.innerHTML = Object.entries(ACCENTS).map(([key,hex])=>
+    `<button class="swatch ${state.settings.accent===key?'sel':''}" data-a="${key}" style="background:${hex}"></button>`
+  ).join('');
+  row.querySelectorAll('.swatch').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      state.settings.accent = b.dataset.a; save(); applySettings();
+      row.querySelectorAll('.swatch').forEach(x=>x.classList.toggle('sel', x===b));
+    });
+  });
+}
+
+function syncSettingsUI(){
+  document.querySelectorAll('#themeSeg .seg-btn').forEach(b=> b.classList.toggle('on', b.dataset.t===state.settings.theme));
+  document.querySelectorAll('#sizeSeg .seg-btn').forEach(b=> b.classList.toggle('on', b.dataset.s===state.settings.fontSize));
+  document.getElementById('toggleDyslexia').classList.toggle('on', state.settings.dyslexia);
+  document.getElementById('toggleMotion').classList.toggle('on', state.settings.reducedMotion);
+  document.getElementById('toggleSound').classList.toggle('on', state.settings.timerSound);
+  document.getElementById('toggleReminders').classList.toggle('on', state.settings.reminders);
+  document.getElementById('userNameInput').value = state.settings.name || '';
+  buildAccentSwatches();
+}
+
+document.getElementById('themeSeg').addEventListener('click', e=>{
+  const b = e.target.closest('.seg-btn'); if(!b) return;
+  state.settings.theme = b.dataset.t; save(); applySettings(); syncSettingsUI();
+});
+document.getElementById('sizeSeg').addEventListener('click', e=>{
+  const b = e.target.closest('.seg-btn'); if(!b) return;
+  state.settings.fontSize = b.dataset.s; save(); applySettings(); syncSettingsUI();
+});
+document.getElementById('toggleDyslexia').addEventListener('click', ()=>{ state.settings.dyslexia = !state.settings.dyslexia; save(); applySettings(); syncSettingsUI(); });
+document.getElementById('toggleMotion').addEventListener('click', ()=>{ state.settings.reducedMotion = !state.settings.reducedMotion; save(); applySettings(); syncSettingsUI(); });
+document.getElementById('toggleSound').addEventListener('click', ()=>{ state.settings.timerSound = !state.settings.timerSound; save(); syncSettingsUI(); });
+document.getElementById('toggleReminders').addEventListener('click', async ()=>{
+  if(!state.settings.reminders && 'Notification' in window){
+    const perm = await Notification.requestPermission();
+    if(perm !== 'granted'){ toast('Permesso notifiche negato'); return; }
+  }
+  state.settings.reminders = !state.settings.reminders; save(); syncSettingsUI();
+  toast(state.settings.reminders ? 'Promemoria attivati' : 'Promemoria disattivati');
+});
+document.getElementById('userNameInput').addEventListener('change', (e)=>{
+  state.settings.name = e.target.value.trim(); save(); renderGreeting();
+});
+document.getElementById('btnResetAll').addEventListener('click', ()=>{
+  if(confirm('Sei sicuro? Tutti i dati verranno cancellati definitivamente.')){
+    localStorage.removeItem(STORE_KEY);
+    state = loadState();
+    applySettings(); renderAll();
+    document.getElementById('overlaySettings').classList.remove('open');
+    toast('Dati cancellati');
+  }
+});
+
+/* ============================================================
+   REMINDER CHECK (gentle, checks upcoming timed tasks)
+=============================================================== */
+setInterval(()=>{
+  if(!state.settings.reminders || !('Notification' in window) || Notification.permission!=='granted') return;
+  const now = new Date(); const nowM = now.getHours()*60+now.getMinutes();
+  todaysTasks().filter(t=>!t.done && t.time).forEach(t=>{
+    const [hh,mm] = t.time.split(':').map(Number);
+    const tm = hh*60+(mm||0);
+    if(tm - nowM === 5 && !t._notified5){
+      t._notified5 = true;
+      new Notification('Tra 5 minuti', {body: t.title, icon:''});
+    }
+  });
+}, 60000);
+
+/* ============================================================
+   MASTER RENDER
+=============================================================== */
+function renderAll(){
+  renderGreeting();
+  renderHero();
+  renderTimeline();
+  renderTaskList();
+  renderMoodDots();
+  renderHabits();
+  renderGoals();
+  renderMoodHistory();
+  syncFocusTaskSelect();
+  renderFocusStats();
+}
+
+/* ============================================================
+   INIT
+=============================================================== */
+applySettings();
+renderPresets();
+updateRing();
+renderMoodPicker();
+renderAll();
+document.getElementById('soundIcon').style.opacity = state.settings.timerSound ? '1' : '.35';
+
+})();
+</script>
+</body>
+</html>

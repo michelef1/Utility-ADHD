@@ -1,0 +1,32 @@
+{
+  "name": "Utility ADHD",
+  "short_name": "Utility ADHD",
+  "description": "Attività, focus timer, abitudini, obiettivi e umore in un unico spazio, pensato per l'ADHD.",
+  "start_url": "/Utility-ADHD/",
+  "scope": "/Utility-ADHD/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#14141f",
+  "theme_color": "#14141f",
+  "lang": "it",
+  "icons": [
+    {
+      "src": "/Utility-ADHD/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/Utility-ADHD/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/Utility-ADHD/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
